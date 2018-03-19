@@ -33,8 +33,8 @@ class App extends Component {
   }
 
   async setTimers() {
-    this.countdowns = [setInterval(this.Adjective, 4000)];
-    await this.sleep(2000);
+    this.countdowns = [setInterval(this.Adjective, 10000)];
+    await this.sleep(5000);
     this.countdowns.push(setInterval(this.Noun, 4000));
   }
 
