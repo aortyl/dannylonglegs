@@ -22,6 +22,24 @@ class App extends Component {
     //For our first load.
     this.Adjective();
     this.Noun();
+
+    this.setTimers();
+  }
+
+  componentWillUnmount() {
+    this.countdowns.forEach(function(countdown) {
+      clearInterval(countdown);
+    });
+  }
+
+  async setTimers() {
+    this.countdowns = [setInterval(this.Adjective, 4000)];
+    await this.sleep(2000);
+    this.countdowns.push(setInterval(this.Noun, 4000));
+  }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   Adjective = () => {
@@ -30,12 +48,10 @@ class App extends Component {
       .then(response => response.json())
       .then((myJson) => {
         this.setState(myJson);
-        console.log(myJson)
       });
   }
 
   Noun = () => {
-    this.setState({ function: "florp!" });
     fetch('https://us-central1-dannylonglegs-eefac.cloudfunctions.net/noun',
           this.opts)
       .then(response => response.json())
