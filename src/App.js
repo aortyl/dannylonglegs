@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 
+import Word from './components/Word'
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -68,7 +70,7 @@ class App extends Component {
           <h1 className="App-title">Daniel Poland Is A...</h1>
         </header>
         <p>
-          {this.state.adjective} {this.state.noun}
+          <Word word={this.state.adjective} /> <Word word={this.state.noun} />
         </p>
       </div>
     );
