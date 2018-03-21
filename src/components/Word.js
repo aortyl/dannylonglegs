@@ -2,17 +2,6 @@ import React, { Component } from 'react';
 import { CSSTransitionGroup } from 'react-transition-group'
 
 class Word extends Component {
-  constructor(props) {
-    super(props);
-  }
-
-  componentDidMount() {
-  }
-
-  componentWillUnmount() {
-
-  }
-
   render() {
     return (
       <CSSTransitionGroup
