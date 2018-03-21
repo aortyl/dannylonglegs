@@ -25,7 +25,7 @@ class App extends Component {
     this.Adjective();
     this.Noun();
 
-    this.setTimers();
+    // this.setTimers();
   }
 
   componentWillUnmount() {
