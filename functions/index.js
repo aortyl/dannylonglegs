@@ -4,7 +4,7 @@ const rp = require('request-promise');
 admin.initializeApp(functions.config().firebase);
 
 
-exports.adjective = functions.https.onRequest((request, response) => {
+exports.description = functions.https.onRequest((request, response) => {
   response.set('Access-Control-Allow-Origin', "*")
   response.set('Access-Control-Allow-Methods', 'GET, POST')
   response.set('Access-Control-Allow-Headers', 'content-type')
