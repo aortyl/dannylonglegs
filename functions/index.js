@@ -7,44 +7,52 @@ admin.initializeApp(functions.config().firebase);
 
 
 exports.description = functions.https.onRequest((request, response) => {
+  if (request.method === `OPTIONS`) {
+  	response
+      .set('Access-Control-Allow-Origin', "*")
+  	  .set('Access-Control-Allow-Methods', 'GET, POST')
+      .set('Access-Control-Allow-Headers', 'content-type')
+  	  .status(200).send();
+  	  return;
+  }
 
-    let p1 = admin.firestore().collection('adjectives').get()
-      .then(snapshot => {
-        if(snapshot.docs.length > 1) {
-          let index = Math.floor(Math.random() * snapshot.docs.length)
-          return snapshot.docs[index].data();
-        } else {
-          return {adjective: "error-prone"};
-        }
-      }).catch((err) => {
-        return {adjective: err};
-      });
-
-    let p2 = admin.firestore().collection('nouns').get()
-      .then(snapshot => {
-        if(snapshot.docs.length > 1) {
-          let index = Math.floor(Math.random() * snapshot.docs.length)
-          return snapshot.docs[index].data();
-        } else {
-          return {adjective: "error"};
-        }
-      }).catch((err) => {
-        return {adjective: err};
-      });
-
-    Promise.all([p1, p2]).then( results => {
-      description = Object.assign({}, results[0], results[1]);
-
-      REQUEST.post(functions.config().slack.webhook_url,
-                   {json: { text: `Dan is a ${description.adjective} ${description.noun}`}});
-
-      response.set('Access-Control-Allow-Origin', "*")
-      response.set('Access-Control-Allow-Methods', 'GET, POST')
-      response.set('Access-Control-Allow-Headers', 'content-type')
-      response.status(200).json(description);
+  let p1 = admin.firestore().collection('adjectives').get()
+    .then(snapshot => {
+      if(snapshot.docs.length > 1) {
+        let index = Math.floor(Math.random() * snapshot.docs.length)
+        return snapshot.docs[index].data();
+      } else {
+        return {adjective: "error-prone"};
+      }
     }).catch((err) => {
-      response.send(err);
+      return {adjective: err};
     });
+
+  let p2 = admin.firestore().collection('nouns').get()
+    .then(snapshot => {
+      if(snapshot.docs.length > 1) {
+        let index = Math.floor(Math.random() * snapshot.docs.length)
+        return snapshot.docs[index].data();
+      } else {
+        return {adjective: "error"};
+      }
+    }).catch((err) => {
+      return {adjective: err};
+    });
+
+  Promise.all([p1, p2]).then( results => {
+    description = Object.assign({}, results[0], results[1]);
+
+    REQUEST.post(functions.config().slack.webhook_url,
+                 {json: { text: `Dan is a ${description.adjective} ${description.noun}`}});
+
+    response.set('Access-Control-Allow-Origin', "*")
+    response.set('Access-Control-Allow-Methods', 'GET, POST')
+    response.set('Access-Control-Allow-Headers', 'content-type')
+    response.status(200).json(description);
+  }).catch((err) => {
+    response.send(err);
+  });
 });
 
 // exports.slack = function.https.onRequest((request, response) => {
