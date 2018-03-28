@@ -5,6 +5,15 @@ const REQUEST = require('request');
 
 admin.initializeApp(functions.config().firebase);
 
+exports.askdan = functions.https.onRequest((request, response) => {
+  if (!request.body || request.body.token !== functions.config().slack.verification_token) {
+    response.status(401).send("Invalid Token");
+
+    return;
+  }
+
+  response.status(200).send("Valid Token!")
+});
 
 exports.description = functions.https.onRequest((request, response) => {
   if (request.method === `OPTIONS`) {
