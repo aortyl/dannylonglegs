@@ -12,7 +12,31 @@ exports.askdan = functions.https.onRequest((request, response) => {
     return;
   }
 
-  response.status(200).send("Valid Token!")
+  let response_url = request.body.response_url;
+  let question = request.body.text;
+
+  let ephemeral_response_payload = {
+    "response_type": "ephemeral",
+    "text": "Valid Token, pal!"
+  };
+
+  response
+    .set('Content-type', 'application/json')
+    .status(200)
+    .send(ephemeral_response_payload);
+
+  let channel_response_payload  = {
+    "response_type": "in_channel",
+    "text": `You Asked: ${question}`,
+    "attachments": [
+      {
+        "text": "Dan Says: Figure it out yourself!"
+      }
+    ]
+  };
+
+  REQUEST.post(response_url, { json: channel_response_payload } );
+
 });
 
 exports.description = functions.https.onRequest((request, response) => {
