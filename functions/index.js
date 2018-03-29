@@ -7,14 +7,15 @@ admin.initializeApp(functions.config().firebase);
 
 function advancedStackExchangeSearch(text) {
   return rp({
-    method: 'GET',
-    uri: `https://api.stackexchange.com/2.2/search/advanced?site=stackoverflow&order=desc&sort=activity&q=${text}&filter=default`,
-    headers: {
-        'User-Agent': 'Request-Promise',
-        'Access-Control-Allow-Origin': "*",
-        'Access-Control-Allow-Methods': 'POST'
+    uri: 'https://api.stackexchange.com/2.2/search/advanced',
+    qs: {
+      site: 'stackoverflow',
+      order: 'desc',
+      sort: 'activity',
+      q: text
     },
     json: true,
+    gzip: true
   });
 }
 
@@ -43,6 +44,8 @@ exports.askdan = functions.https.onRequest((request, response) => {
       .set('Content-type', 'application/json')
       .status(200)
       .send(ephemeral_response_payload);
+
+    return;
   }
 
   let ephemeral_response_payload = {
@@ -55,20 +58,36 @@ exports.askdan = functions.https.onRequest((request, response) => {
     .status(200)
     .send(ephemeral_response_payload);
 
+  let channel_response_payload  = {
+    "response_type": "in_channel",
+    "text": `You asked: ${question} \n Dan Says:`
+  };
+
   advancedStackExchangeSearch(question)
-    .then( soResponse => {
-      channel_response_payload  = {
-        "response_type": "in_channel",
-        "text": `Success`
-      };
+    .then( (soResponse) => {
+      if(soResponse.items && soResponse.items.length > 0) {
+        // for(let item of soResponse.body.items) {
+        channel_response_payload['attachments'] = [
+          {
+            "text": `Lazy sack of bones... Try this: ${soResponse.items[0].link}`
+          }
+        ]
+      } else {
+        channel_response_payload['attachments'] = [
+          {
+            "text": `I don't know what to say... Didn't find anything for you, brah.`
+          }
+        ]
+      }
 
       REQUEST.post(response_url, { json: channel_response_payload } );
     })
     .catch( err => {
-      channel_response_payload  = {
-        "response_type": "in_channel",
-        "text": `Error: ${err}`
-      };
+      channel_response_payload['attachments'] = [
+        {
+          "text": `Error: ${err}`
+        }
+      ]
 
       REQUEST.post(response_url, { json: channel_response_payload } );
     });
