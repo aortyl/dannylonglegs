@@ -5,6 +5,19 @@ const REQUEST = require('request');
 
 admin.initializeApp(functions.config().firebase);
 
+function advancedStackExchangeSearch(text) {
+  return rp({
+    method: 'GET',
+    uri: `https://api.stackexchange.com/2.2/search/advanced?site=stackoverflow&order=desc&sort=activity&q=${text}&filter=default`,
+    headers: {
+        'User-Agent': 'Request-Promise',
+        'Access-Control-Allow-Origin': "*",
+        'Access-Control-Allow-Methods': 'POST'
+    },
+    json: true,
+  });
+}
+
 exports.askdan = functions.https.onRequest((request, response) => {
   if (!request.body || request.body.token !== functions.config().slack.verification_token) {
     response.status(401).send("Invalid Token");
@@ -15,9 +28,26 @@ exports.askdan = functions.https.onRequest((request, response) => {
   let response_url = request.body.response_url;
   let question = request.body.text;
 
+  if (question === 'help') {
+    let ephemeral_response_payload = {
+      "response_type": "ephemeral",
+      "text": "How do use /askdan",
+      "attachments": [
+        {
+          "text": "Just type `/askdan` followed by a question. Doesn't really matter though. He won't answer."
+        }
+      ]
+    };
+
+    response
+      .set('Content-type', 'application/json')
+      .status(200)
+      .send(ephemeral_response_payload);
+  }
+
   let ephemeral_response_payload = {
     "response_type": "ephemeral",
-    "text": "Valid Token, pal!"
+    "text": "Asking Dan..."
   };
 
   response
@@ -25,18 +55,23 @@ exports.askdan = functions.https.onRequest((request, response) => {
     .status(200)
     .send(ephemeral_response_payload);
 
-  let channel_response_payload  = {
-    "response_type": "in_channel",
-    "text": `You Asked: ${question}`,
-    "attachments": [
-      {
-        "text": "Dan Says: Figure it out yourself!"
-      }
-    ]
-  };
+  advancedStackExchangeSearch(question)
+    .then( soResponse => {
+      channel_response_payload  = {
+        "response_type": "in_channel",
+        "text": `Success`
+      };
 
-  REQUEST.post(response_url, { json: channel_response_payload } );
+      REQUEST.post(response_url, { json: channel_response_payload } );
+    })
+    .catch( err => {
+      channel_response_payload  = {
+        "response_type": "in_channel",
+        "text": `Error: ${err}`
+      };
 
+      REQUEST.post(response_url, { json: channel_response_payload } );
+    });
 });
 
 exports.description = functions.https.onRequest((request, response) => {
@@ -87,28 +122,3 @@ exports.description = functions.https.onRequest((request, response) => {
     response.send(err);
   });
 });
-
-// exports.slack = function.https.onRequest((request, response) => {
-//
-// });
-
-
-/**
- * Post a message to Slack about the new GitHub commit.
- */
-function postToSlack(msg) {
-  return rp({
-    method: 'POST',
-    // TODO: Configure the `slack.webhook_url` Google Cloud environment variables.
-    uri: functions.config().slack.webhook_url,
-    body: {
-      text: `Dan is a ${msg}`,
-    },
-    headers: {
-        'User-Agent': 'Request-Promise',
-        'Access-Control-Allow-Origin': "*",
-        'Access-Control-Allow-Methods': 'POST'
-    },
-    json: true,
-  });
-}
