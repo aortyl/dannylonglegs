@@ -19,6 +19,49 @@ function advancedStackExchangeSearch(text) {
   });
 }
 
+function stackOverflowTagsPageRequestPromise(page) {
+  return rp({
+    uri: 'https://api.stackexchange.com/2.2/tags',
+    qs: {
+      site: 'stackoverflow',
+      order: 'desc',
+      sort: 'popular',
+      pagesize: '100',
+      page: page
+    },
+    json: true,
+    gzip: true
+  });
+}
+
+function getStackOverflowPage(page) {
+  stackOverflowTagsPageRequestPromise(page)
+    .then( (soResponse) => {
+      if( soResponse.has_more ) {
+        // Make a request to pull the next page if it is needed.
+        page++;
+        getStackOverflowPage(page);
+      }
+
+      if(soResponse.items && soResponse.items.length > 0) {
+        //Parse the tags - storing them in our own collection.
+        var batch = admin.firestore().batch();
+
+        for (let tag of soResponse.items) {
+          batch.set(admin.firestore().collection('tags').doc(tag.name), tag);
+        }
+
+        batch.commit().then(function () {
+            // TODO - Do something on successful commit?
+        });
+
+      }
+    })
+    .catch( err => {
+      console.error(err);
+    });
+}
+
 exports.askdan = functions.https.onRequest((request, response) => {
   if (!request.body || request.body.token !== functions.config().slack.verification_token) {
     response.status(401).send("Invalid Token");
@@ -91,6 +134,11 @@ exports.askdan = functions.https.onRequest((request, response) => {
 
       REQUEST.post(response_url, { json: channel_response_payload } );
     });
+});
+
+exports.syncTags = functions.https.onRequest((request, response) => {
+  let page = 1
+
 });
 
 exports.description = functions.https.onRequest((request, response) => {
