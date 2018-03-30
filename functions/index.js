@@ -51,14 +51,18 @@ function getStackOverflowPage(page) {
           batch.set(admin.firestore().collection('tags').doc(tag.name), tag);
         }
 
-        batch.commit().then(function () {
+        batch.commit()
+          .then(function () {
             // TODO - Do something on successful commit?
-        });
+          })
+          .catch( err => {
+            console.error(`Error committing batch: ${err}`);
+          });
 
       }
     })
     .catch( err => {
-      console.error(err);
+      console.error(`Error Pulling Tags from SO: ${err}`);
     });
 }
 
