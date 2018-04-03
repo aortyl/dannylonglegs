@@ -35,12 +35,12 @@ function stackOverflowTagsPageRequestPromise(page) {
 }
 
 function getStackOverflowPage(page) {
-  stackOverflowTagsPageRequestPromise(page)
+  return stackOverflowTagsPageRequestPromise(page)
     .then( (soResponse) => {
       if( soResponse.has_more ) {
         // Make a request to pull the next page if it is needed.
         page++;
-        getStackOverflowPage(page);
+        return getStackOverflowPage(page);
       }
 
       if(soResponse.items && soResponse.items.length > 0) {
@@ -141,8 +141,13 @@ exports.askdan = functions.https.onRequest((request, response) => {
 });
 
 exports.syncTags = functions.https.onRequest((request, response) => {
-  let page = 1
-
+  getStackOverflowPage(1)
+    .then(function () {
+      // TODO - return some sort of stats about the tag sync? Maybe # of tags synced? (Page - 1) * pagesize + (last page count)
+    })
+    .catch( err => {
+      console.error(`Error resolving recursive tag process: ${err}`);
+    });
 });
 
 exports.description = functions.https.onRequest((request, response) => {
