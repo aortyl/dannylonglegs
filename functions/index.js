@@ -9,6 +9,7 @@ function advancedStackExchangeSearch(text) {
   return rp({
     uri: 'https://api.stackexchange.com/2.2/search/advanced',
     qs: {
+      key: functions.config().so.api_key,
       site: 'stackoverflow',
       order: 'desc',
       sort: 'activity',
@@ -23,6 +24,7 @@ function stackOverflowTagsPageRequestPromise(page) {
   return rp({
     uri: 'https://api.stackexchange.com/2.2/tags',
     qs: {
+      key: functions.config().so.api_key,
       site: 'stackoverflow',
       order: 'desc',
       sort: 'popular',
@@ -37,13 +39,8 @@ function stackOverflowTagsPageRequestPromise(page) {
 function getStackOverflowPage(page) {
   return stackOverflowTagsPageRequestPromise(page)
     .then( (soResponse) => {
-      if( soResponse.has_more ) {
-        // Make a request to pull the next page if it is needed.
-        page++;
-        return getStackOverflowPage(page);
-      }
-
       if(soResponse.items && soResponse.items.length > 0) {
+        console.log(`Received a response for page ${page} from SO with ${soResponse.items.length} items.`)
         //Parse the tags - storing them in our own collection.
         var batch = admin.firestore().batch();
 
@@ -51,18 +48,28 @@ function getStackOverflowPage(page) {
           batch.set(admin.firestore().collection('tags').doc(tag.name), tag);
         }
 
-        batch.commit()
+        return batch.commit()
           .then(function () {
-            // TODO - Do something on successful commit?
+            if( soResponse.has_more ) {
+              // Make a request to pull the next page if it is needed.
+              page++;
+              if( page <= 10 ) {
+                return getStackOverflowPage(page);
+              } else {
+                return page;
+              }
+            }
           })
           .catch( err => {
             console.error(`Error committing batch: ${err}`);
+            return page;
           });
 
       }
     })
     .catch( err => {
       console.error(`Error Pulling Tags from SO: ${err}`);
+      return page;
     });
 }
 
@@ -142,8 +149,9 @@ exports.askdan = functions.https.onRequest((request, response) => {
 
 exports.syncTags = functions.https.onRequest((request, response) => {
   getStackOverflowPage(1)
-    .then(function () {
+    .then(function (result) {
       // TODO - return some sort of stats about the tag sync? Maybe # of tags synced? (Page - 1) * pagesize + (last page count)
+      response.send(`I did a thing - ${result}`)
     })
     .catch( err => {
       console.error(`Error resolving recursive tag process: ${err}`);
