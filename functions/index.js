@@ -81,9 +81,16 @@ exports.askdan = functions.https.onRequest((request, response) => {
   }
 
   let response_url = request.body.response_url;
-  let question = request.body.text;
 
-  if (question === 'help') {
+  var question = admin.firestore().collection('questions').add({
+    question: request.body.text,
+    user_id: request.body.user_id,
+    created: new Date()
+  }).then(ref => {
+
+  });
+
+  if (question.question === 'help') {
     let ephemeral_response_payload = {
       "response_type": "ephemeral",
       "text": "How do use /askdan",
@@ -114,10 +121,10 @@ exports.askdan = functions.https.onRequest((request, response) => {
 
   let channel_response_payload  = {
     "response_type": "in_channel",
-    "text": `You asked: ${question} \n Dan Says:`
+    "text": `You asked: ${question.question} \n Dan Says:`
   };
 
-  advancedStackExchangeSearch(question)
+  advancedStackExchangeSearch(question.question)
     .then( (soResponse) => {
       if(soResponse.items && soResponse.items.length > 0) {
         // for(let item of soResponse.body.items) {
