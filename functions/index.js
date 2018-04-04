@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const rp = require('request-promise');
 const REQUEST = require('request');
 
-admin.initializeApp(functions.config().firebase);
+admin.initializeApp();
 
 function advancedStackExchangeSearch(text) {
   return rp({
@@ -80,17 +80,7 @@ exports.askdan = functions.https.onRequest((request, response) => {
     return;
   }
 
-  let response_url = request.body.response_url;
-
-  var question = admin.firestore().collection('questions').add({
-    question: request.body.text,
-    user_id: request.body.user_id,
-    created: new Date()
-  }).then(ref => {
-
-  });
-
-  if (question.question === 'help') {
+  if (request.body.text === 'help') {
     let ephemeral_response_payload = {
       "response_type": "ephemeral",
       "text": "How do use /askdan",
@@ -109,22 +99,35 @@ exports.askdan = functions.https.onRequest((request, response) => {
     return;
   }
 
-  let ephemeral_response_payload = {
-    "response_type": "ephemeral",
-    "text": "Asking Dan..."
-  };
+  admin.firestore().collection('questions').add({
+    text: request.body.text,
+    user_id: request.body.user_id,
+    response_url: request.body.response_url,
+    created: new Date()
+  }).then(question => {
 
-  response
+  }).catch(err => {
+    console.error(`Error saving question: ${err}`);
+  });
+
+  return response
     .set('Content-type', 'application/json')
     .status(200)
-    .send(ephemeral_response_payload);
+    .send({
+      "response_type": "ephemeral",
+      "text": `Asking Dan...`
+    });
+});
+
+exports.questionOnCreate = functions.firestore.document('questions/{questionId}').onCreate((snap, context) => {
+  let question = snap.data();
 
   let channel_response_payload  = {
     "response_type": "in_channel",
-    "text": `You asked: ${question.question} \n Dan Says:`
+    "text": `You asked: ${question.text} \n Dan Says:`
   };
 
-  advancedStackExchangeSearch(question.question)
+  return advancedStackExchangeSearch(question.text)
     .then( (soResponse) => {
       if(soResponse.items && soResponse.items.length > 0) {
         // for(let item of soResponse.body.items) {
@@ -141,7 +144,7 @@ exports.askdan = functions.https.onRequest((request, response) => {
         ]
       }
 
-      REQUEST.post(response_url, { json: channel_response_payload } );
+      REQUEST.post(question.response_url, { json: channel_response_payload } );
     })
     .catch( err => {
       channel_response_payload['attachments'] = [
@@ -150,7 +153,7 @@ exports.askdan = functions.https.onRequest((request, response) => {
         }
       ]
 
-      REQUEST.post(response_url, { json: channel_response_payload } );
+      REQUEST.post(question.response_url, { json: channel_response_payload } );
     });
 });
 
