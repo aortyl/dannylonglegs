@@ -121,9 +121,22 @@ exports.askdan = functions.https.onRequest((request, response) => {
 
 exports.questionOnCreate = functions.firestore.document('questions/{questionId}').onCreate((snap, context) => {
   let question = snap.data();
+  let tag_regs = question.text
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g,"")
+    .replace(/\s{2,}/g," ")
+    .split(" ")
+    .map(x => admin.firestore().collection('tags').doc(x));
+
+  admin.firestore().getAll(tag_regs).then(docs => {
+    for(let doc of docs) {
+      console.log(`Tag: ${doc.id}:${doc.exists}`);
+    }
+  }).catch(err => {
+    console.error(`Error searching tags: ${err}`);
+  });
 
   let channel_response_payload  = {
-    "response_type": "in_channel",
+    "response_type": "ephemeral",
     "text": `You asked: ${question.text} \n Dan Says:`
   };
 
@@ -143,6 +156,10 @@ exports.questionOnCreate = functions.firestore.document('questions/{questionId}'
           }
         ]
       }
+
+      snap.ref.set ({
+        response: channel_response_payload['attachments']
+      }, {merge: true});
 
       REQUEST.post(question.response_url, { json: channel_response_payload } );
     })
